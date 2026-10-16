@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  # restartPolicy: Never
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: nginx-1
+      image: nginx
+    # - name: nginx-2
+    #   image: nginx
+    - name: util
+      image: vinsdocker/util
+      args:
+        - "sleep"
+        - "3600"
