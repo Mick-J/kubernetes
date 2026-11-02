@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongo-creds
+type: Opaque
+data:
+  # Base64 encoded strings for 'admin' and 'password'
+  mongo-username: YWRtaW4=
+  mongo-password: cGFzc3dvcmQ=
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-init-js
+data:
+  # Your exact data.js file content
+  data.js: |
+    db = db.getSiblingDB('product-service');
+    db.createCollection('products');
+    db.products.insertMany(
+        [
+            {
+                "name":"iphone",
+                "price": "1200"
+            },
+            {
+                "name":"ipad",
+                "price": "800"
+            },
+            {
+                "name":"mac",
+                "price": "3000"
+            }                
+        ]
+    )
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:4.4-focal
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-creds
+                  key: mongo-username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-creds
+                  key: mongo-password
+          volumeMounts:
+            # Mounts your data.js into the initialization directory
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+            # Mounts persistent storage for your operational data
+            - name: mongo-storage
+              mountPath: /data/db
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: mongo-init-js
+        - name: mongo-storage
+          persistentVolumeClaim:
+            name: mongo-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+spec:
+  selector:
+    app: mongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+        - name: mongo-express
+          image: mongo-express:1.0.0-alpha.4
+          ports:
+            - containerPort: 8081
+          env:
+            - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-creds
+                  key: mongo-username
+            - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-creds
+                  key: mongo-password
+            - name: ME_CONFIG_MONGODB_SERVER
+              value: "mongo"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: express-service
+spec:
+  selector:
+    app: mongo-express
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+
+# kubectl apply -f 07-assignment.yaml
+# kubectl port-forward service/express-service 8080:8080
