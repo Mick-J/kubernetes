@@ -1,7 +1,5 @@
 ## Section 10: Auto Scaling
 
-Resources: CPU, Memory
-
 ### 10.1. Metric server - install
 
 ```shell
