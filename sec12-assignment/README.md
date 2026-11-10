@@ -7,8 +7,9 @@ The assignment details is depicted as follow:
   - `assignment-details.md` contains the details to write the Kubernetes resources and deploy the `docker-compose.yaml` services in kunernetrs cluster.
 - `conf` folder
   - `nginx.conf` contains the routing rules
-    data
-- `data` folder contains the initialization data for each database involved (`candidate-init.js` and `job-init.js`)
+- `data` folder
+    - `candidate-init.js` initialization data for candidate service
+    - `job-init.js` initialization data for job service
 
 The assignment solution is located in solution folder.
 
